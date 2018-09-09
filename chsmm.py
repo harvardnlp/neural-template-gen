@@ -1268,9 +1268,9 @@ if __name__ == "__main__":
         #assert False
 
     def gen_from_src():
-        from posthoc2 import do_posthoc_mapping, align_cntr
-        top_temps, _, _, _, _ = do_posthoc_mapping(args.data, args.bsz, args.tagged_fi,
-                                                   args.ntemplates, no_align=True)
+        from template_extraction import extract_from_tagged_data, align_cntr
+        top_temps, _, _, _, _ = extract_from_tagged_data(args.data, args.bsz, args.tagged_fi,
+                                                         args.ntemplates)
 
         with open(args.gen_from_fi) as f:
             src_lines = f.readlines()
@@ -1317,13 +1317,13 @@ if __name__ == "__main__":
 
 
     def align_stuff():
-        from posthoc2 import do_posthoc_mapping
+        from template_extraction import extract_from_tagged_data
         i2w = corpus.dictionary.idx2word
         net.eval()
-        cop_counters = [Counter() for _ in xrange(net.K)]
+        cop_counters = [Counter() for _ in xrange(net.K*net.Kmul)]
         net.ar = saved_args.ar_after_decay and not args.no_ar_for_vit
-        top_temps, _, _, _, _ = do_posthoc_mapping(args.data, args.bsz, args.tagged_fi,
-                                                   args.ntemplates, no_align=True)
+        top_temps, _, _, _, _ = extract_from_tagged_data(args.data, args.bsz, args.tagged_fi,
+                                                         args.ntemplates)
         top_temps = set(temp for temp in top_temps)
 
         with open(os.path.join(args.data, "train.txt")) as f:
@@ -1342,9 +1342,6 @@ if __name__ == "__main__":
             nfields = src.size(1)
             if seqlen <= saved_args.L or seqlen > args.max_seqlen:
                 continue
-
-            # map field_idxs to their field types
-            loc2types = [[i2w[src[b][ff][0]] for ff in xrange(nfields)] for b in xrange(bsz)]
 
             combotargs = make_combo_targs(locs, x, saved_args.L, nfields, corpus.ngen_types)
             # get bsz x nfields, bsz x nfields masks
@@ -1374,7 +1371,10 @@ if __name__ == "__main__":
                 if tuple(labe for (start, end, labe) in seqs[bidx]) in top_temps:
                     lineno = corpus.train_mb2linenos[i][bidx]
                     tgttokes = tgtlines[lineno]
-                    src_tbl = get_e2e_poswrds(srclines[lineno]) # field, idx -> wrd
+                    if "wiki" in args.data:
+                        src_tbl = get_wikibio_poswrds(srclines[lineno])
+                    else:
+                        src_tbl = get_e2e_poswrds(srclines[lineno]) # field, idx -> wrd
                     wrd2fields = defaultdict(list)
                     for (field, idx), wrd in src_tbl.iteritems():
                         wrd2fields[wrd].append(field)
