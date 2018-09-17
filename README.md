@@ -94,4 +94,4 @@ python chsmm.py -data data/labee2e/ -emb_size 300 -hid_size 300 -layers 1 -dropo
 
 Generations from the other models can be obtained analogously, by substituting in the correct arguments for `-data` (path to data directory), `-gen_from_fi` (the source file from which to generate), `-load` (path to the saved model), and `-tagged_fi` (path to the MAP segmentations under the corresponding model). See [chsmm.py](https://github.com/harvardnlp/neural-template-gen/blob/master/chsmm.py) for additional generation options.
 
-N.B. The format of the generations is: <generation>|||<segmentation>, where <segmentation> provides the segmentation used in generating. All the text beginning with '|||' should be stripped off before evaluating the generations.
+N.B. The format of the generations is: `<generation>|||<segmentation>`, where `<segmentation>` provides the segmentation used in generating. As such, all the text beginning with '|||' should be stripped off before evaluating the generations.
