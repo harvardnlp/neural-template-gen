@@ -1,7 +1,5 @@
 # neural-template-gen
 
-README coming soon!
-
 Code for [Learning Neural Templates for Text Generation](https://arxiv.org/abs/1808.10122) (Wiseman, Shieber, Rush; EMNLP 2018)
 
 For questions/concerns/bugs please feel free to email swiseman@ttic.edu.
