@@ -895,7 +895,7 @@ parser.add_argument('-ar_after_decay', action='store_true', help='')
 parser.add_argument('-no_ar_for_vit', action='store_true', help='')
 parser.add_argument('-fine_tune', action='store_true', help='only train ar rnn')
 
-parser.add_argument('-dropout', type=float, default=0, help='dropout')
+parser.add_argument('-dropout', type=float, default=0.3, help='dropout')
 parser.add_argument('-emb_drop', action='store_true', help='dropout on embeddings')
 parser.add_argument('-lse_obj', action='store_true', help='')
 parser.add_argument('-sep_attn', action='store_true', help='')
@@ -941,28 +941,9 @@ if __name__ == "__main__":
         else:
             torch.cuda.manual_seed(args.seed)
 
-    potential_path = None
-    if args.bsz == 5:
-        potential_path = "/n/rush_lab/users/swiseman/templates/wb5-bsz5.pt"
-    elif len(args.gen_from_fi) > 0:
-        potential_path = "wb5-justvocab.pt"
-    else:
-        potential_path = "wb5.pt"
-    if "wiki" in args.data and os.path.exists(potential_path) and not args.label_train:
-        print >> sys.stderr, "loading dataset from", potential_path
-        corpus = torch.load(potential_path)
-    elif "wiki" in args.data and not args.label_train:
-        corpus = labeled_data.SentenceCorpus(args.data, args.bsz, thresh=args.thresh, add_bos=False,
-                                         add_eos=False, test=args.test)
-        print >> sys.stderr, "saving wb corpus..."
-        torch.save(corpus, "/n/rush_lab/users/swiseman/templates/wb5.pt")
-        assert False
-    else:
-        # Load data
-        corpus = labeled_data.SentenceCorpus(args.data, args.bsz, thresh=args.thresh, add_bos=False,
-                                         add_eos=False, test=args.test)
-
-
+    # Load data
+    corpus = labeled_data.SentenceCorpus(args.data, args.bsz, thresh=args.thresh, add_bos=False,
+                                     add_eos=False, test=args.test)
 
     if not args.interactive and not args.label_train and len(args.gen_from_fi) == 0:
         # make constraint things from labels
@@ -1269,7 +1250,7 @@ if __name__ == "__main__":
 
     def gen_from_src():
         from template_extraction import extract_from_tagged_data, align_cntr
-        top_temps, _, _, _, _ = extract_from_tagged_data(args.data, args.bsz, args.tagged_fi,
+        top_temps, _, _ = extract_from_tagged_data(args.data, args.bsz, args.tagged_fi,
                                                          args.ntemplates)
 
         with open(args.gen_from_fi) as f:
@@ -1322,8 +1303,8 @@ if __name__ == "__main__":
         net.eval()
         cop_counters = [Counter() for _ in xrange(net.K*net.Kmul)]
         net.ar = saved_args.ar_after_decay and not args.no_ar_for_vit
-        top_temps, _, _, _, _ = extract_from_tagged_data(args.data, args.bsz, args.tagged_fi,
-                                                         args.ntemplates)
+        top_temps, _, _ = extract_from_tagged_data(args.data, args.bsz, args.tagged_fi,
+                                                   args.ntemplates)
         top_temps = set(temp for temp in top_temps)
 
         with open(os.path.join(args.data, "train.txt")) as f:

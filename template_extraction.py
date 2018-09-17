@@ -84,10 +84,17 @@ def extract_from_tagged_data(datadir, bsz, tagged_fi, ntemplates):
     top_temps = sorted(temps2sents.keys(), key=lambda x: -len(temps2sents[x]))[:ntemplates]
     #remap_eos_states(top_temps, temps2sents)
     state2phrases = just_state2phrases(top_temps, temps2sents)
-    state2counts, state2type = None, None
 
 
-    return top_temps, temps2sents, state2phrases, state2counts, state2type
+    return top_temps, temps2sents, state2phrases
+
+
+def topk_phrases(pobj, k):
+    phrases, probs = pobj
+    thing = sorted(zip(phrases, list(probs)), key=lambda x: -x[1])
+    sphrases, sprobs = zip(*thing)
+    return sphrases[:k]
+
 
 def align_cntr(cntr, thresh=0.4):
     tote = float(sum(cntr.values()))
