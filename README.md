@@ -2,7 +2,7 @@
 
 Code for [Learning Neural Templates for Text Generation](https://arxiv.org/abs/1808.10122) (Wiseman, Shieber, Rush; EMNLP 2018)
 
-For questions/concerns/bugs please feel free to email swiseman@ttic.edu.
+For questions/concerns/bugs please feel free to email swiseman[at]ttic.edu.
 
 N.B. This code was tested with python 2.7 and pytorch 0.3.1.
 
