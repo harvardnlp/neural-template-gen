@@ -7,63 +7,6 @@ import torch
 from torch.autograd import Variable
 from utils import logsumexp0, logsumexp2
 
-def fwd_bwd(pi, trans_logprobs, bwd_obs_logprobs, fwd_obs_logprobs, just_alphas=False):
-    """
-    pi               - bsz x K
-    bwd_obs_logprobs - L x T x bsz x K, obs probs ending at t
-    fwd_obs_logprobs - L x T x bsz x K, obs probs starting at t
-    trans_logprobs   - T-1 x bsz x K x K, trans_logprobs[t] = p(q_{t+1} | q_t)
-    """
-    L, seqlen, bsz, K = fwd_obs_logprobs.size()
-    # we'll be 1-indexed for alphas and betas
-    alph = trans_logprobs.new(seqlen+1, bsz, K).fill_(-float("inf"))
-    alph_star = trans_logprobs.new(seqlen+1, bsz, K).fill_(-float("inf"))
-    alph_star[0].copy_(pi)
-    bwd_maxlens = trans_logprobs.new(seqlen).fill_(L) # store max possible length generated from t
-    bwd_maxlens[-L:].copy_(torch.arange(L, 0, -1))
-    bwd_maxlens = bwd_maxlens.log_().view(seqlen, 1, 1)
-
-    if not just_alphas:
-        beta = trans_logprobs.new(seqlen+1, bsz, K).fill_(-float("inf"))
-        beta_star = trans_logprobs.new(seqlen+1, bsz, K).fill_(-float("inf"))
-        beta[seqlen].fill_(0)
-    else:
-        beta, beta_star = None, None
-    for t in xrange(1, seqlen+1):
-        steps_back = min(L, t)
-        # alph_t(j) = log \sum_l p(x_{t-l+1:t}) alph*_{t-l} p(l_t)
-        alph_terms = (alph_star[t-steps_back:t] # steps_back x bsz x K
-                      + bwd_obs_logprobs[-steps_back:, t-1]) # steps_back x bsz x K (0-idx)
-        alph_terms.sub_(bwd_maxlens[t-steps_back:t].expand_as(alph_terms)) # steps_back x bsz x K
-
-        alph[t] = logsumexp0(alph_terms) # bsz x K
-        if t < seqlen:
-            # alph*_t(k) = log \sum_j alph_t(j) p(q_{t+1}=k | q_t = j)
-            # get bsz x K x K trans logprobs, viz., p(q_{t+1}=j|i) w/ 0th dim i, 2nd dim j
-            tps = trans_logprobs[t-1] # N.B. trans_logprobs[t] is p(q_{t+1}) and 0-indexed
-            alph_t = alph[t] # bsz x K, viz, p(x, j)
-            alph_star_terms = (tps.transpose(0, 1) # K x bsz x K
-                               + alph_t.unsqueeze(2).expand(bsz, K, K).transpose(0, 1))
-            alph_star[t] = logsumexp0(alph_star_terms)
-        if not just_alphas:
-            # beta*_t(k) = log \sum_l beta_{t+l}(k) p(x_{t+1:t+l}) p(l_t)
-            beta_star_terms = (beta[seqlen-t+1:seqlen-t+1+steps_back] # steps_back x bsz x K
-                               + fwd_obs_logprobs[:steps_back, seqlen-t] # steps_back x bsz x K
-                              ).sub_(math.log(steps_back)) # steps_back x bsz x K
-            beta_star[seqlen-t] = logsumexp0(beta_star_terms)
-            if seqlen-t > 0:
-                # beta_t(j) = log \sum_k beta*_t(k) p(q_{t+1} = k | q_t=j)
-                betastar_nt = beta_star[seqlen-t] # bsz x K
-                # get bsz x K x K trans logprobs, viz., p(q_{t+1}=j|i) w/ 0th dim i, 2nd dim j
-                tps = trans_logprobs[seqlen-t-1] # N.B. trans_logprobs[t] is p(q_{t+1}) and 0-idxed
-                beta_terms = betastar_nt.unsqueeze(1).expand(bsz, K, K) + tps # bsz x K x K
-                #print logsumexp2(beta_terms).size()
-                #print beta[seqlen-1].size()
-                beta[seqlen-t] = logsumexp2(beta_terms) # bsz x K
-
-
-    return alph, alph_star, beta, beta_star
-
 
 def recover_bps(delt, bps, bps_star):
     """
@@ -97,16 +40,11 @@ def viterbi(pi, trans_logprobs, bwd_obs_logprobs, len_logprobs, constraints=None
     trans_logprobs   - T-1 x bsz x K x K, trans_logprobs[t] = p(q_{t+1} | q_t).
     see https://hal.inria.fr/hal-01064672v2/document
     """
-    # delt_t(j)  = max_{q1:t-1} p(x_1:t, q_t=k,f_t=1)
-    # delt*_t(k) = max_{q1:t}   p(x_1:t, q_{t+1}=k, f_t=1)
     neginf = -1e38
     L, seqlen, bsz, K = bwd_obs_logprobs.size()
     delt = trans_logprobs.new(seqlen+1, bsz, K).fill_(-float("inf"))
     delt_star = trans_logprobs.new(seqlen+1, bsz, K).fill_(-float("inf"))
     delt_star[0].copy_(pi.expand(bsz, K))
-    # bwd_maxlens = trans_logprobs.new(seqlen).fill_(L) # store max possible length generated from t
-    # bwd_maxlens[-L:].copy_(torch.arange(L, 0, -1))
-    # bwd_maxlens = bwd_maxlens.log_().view(seqlen, 1, 1)
 
     # currently len_logprobs contains tensors that are [1 step back; 2 steps back; ... L steps_back]
     # but we need to flip on the 0'th axis
@@ -125,19 +63,12 @@ def viterbi(pi, trans_logprobs, bwd_obs_logprobs, len_logprobs, constraints=None
         steps_back = min(L, t)
         steps_fwd = min(L, seqlen-t+1)
 
-        # this is so fucking annoying
         if steps_back <= steps_fwd:
             # steps_fwd x K -> steps_back x K
             len_terms = flipped_len_logprobs[min(L-1, steps_fwd-1)][-steps_back:]
         else: # we need to pick probs from different distributions...
             len_terms = torch.stack([len_logprobs[min(L, seqlen+1-t+jj)-1][jj]
                                      for jj in xrange(L-1, -1, -1)])
-            # fuckoff = []
-            # assert steps_back == L
-            # for jj in xrange(L-1, -1, -1):
-            #     sf = min(L, seqlen+1-t+jj) # actual steps fwd
-            #     fuckoff.append(len_logprobs[sf-1][jj])
-            # len_terms = torch.stack(fuckoff)
 
         if constraints is not None and constraints[t] is not None:
             tmask = mask.narrow(0, 0, steps_back).zero_()
@@ -269,76 +200,6 @@ def just_bwd(trans_logprobs, fwd_obs_logprobs, len_logprobs, constraints=None):
 
 
     return beta, beta_star
-
-def get_trans_logposteriors(alph, beta_star, trans_logprobs, evidence):
-    """
-    alph           - seqlen+1 x bsz x K
-    beta_star      - seqlen+1 x bsz x K
-    trans_logprobs - seqlen-1 x bsz x K x K tensor
-    evidence       - 1 x bsz
-    returns: seqlen-1 x bsz x K x K tensor of log posteriors
-    """
-    seqlenp1, bsz, K = alph.size()
-    seqlen = seqlenp1-1
-    #p(q_{t+1}=k, q_t=j, f_t=1, x_1:T) = alpha_t(j) p(q_{t+1}=k|q_t=j) beta*_t(k)
-    posts = (alph[1:-1].unsqueeze(3).expand(seqlen-1, bsz, K, K)
-             + trans_logprobs).add_( # N.B. trans_logprobs is 0-idxd and 1 behind
-                 beta_star[1:-1].unsqueeze(2).expand(seqlen-1, bsz, K, K)).sub_(
-                     evidence.view(1, bsz, 1, 1).expand(seqlen-1, bsz, K, K)) # subtract log ev
-    return posts
-
-
-def get_init_logposteriors(beta_star, init_logprobs, evidence):
-    """
-    beta_star      - seqlen+1 x bsz x K
-    init_logprobs  - bsz x K
-    evidence       - 1 x bsz
-    returns: seqlen-1 x bsz x K x K tensor of log posteriors
-    """
-    # p(x_{1:T}, q_1=k, f_0=1) = beta*_0(k) p(q_1=k)
-    beta_star0 = beta_star[0] # bsz x K
-    bsz, K = beta_star0.size()
-    post = (beta_star0
-            + init_logprobs).sub_(
-                evidence.view(bsz, 1).expand(bsz, K))
-    return post
-
-
-# hold on. so fwd_obs_logprobs are [p1    p2    p3    p4
-#                                   p1:2  p2:3  p3:4  pad
-#                                   p1:3  p2:4  pad   pad ]
-# so that's why we fill in the posteriors below by padding at the end
-# rather than the beginning.
-def get_obs_logposteriors(alph_star, beta, bwd_obs_logprobs, evidence):
-    """
-    alph_star        - seqlen+1 x bsz x K
-    beta             - seqlen+1 x bsz x K
-    bwd_obs_logprobs - L x seqlen x bsz x K, obs probs ending at t
-    evidence         - 1 x bsz
-    returns: L x seqlen x bsz x K tensor of log posteriors
-    """
-    seqlenp1, bsz, K = alph_star.size()
-    seqlen = seqlenp1 - 1
-    L = bwd_obs_logprobs.size(0)
-    post = alph_star.new(L, seqlen, bsz, K).fill_(-float("inf")) # will mask out irrelevant probs
-
-    # store max possible length generated from t for uniform probs, e.g.:
-    # math.log(3), math.log(3), ..., math.log(3), math.log(2), math.log(1)
-    bwd_maxlens = beta.new(seqlen).fill_(L)
-    bwd_maxlens[-L:].copy_(torch.arange(L, 0, -1))
-    bwd_maxlens = bwd_maxlens.log_().view(seqlen, 1, 1)
-
-    ev = evidence.view(1, bsz, 1)
-    # p(q_t=k, l_t=l, f_t=1, x_1:T) = a*_{t-l}(k) p(l) p(x_{t-l+1:t} | q_t=k) beta_t(k)
-    for l in xrange(1, L+1):
-        post[l-1, :seqlen-l+1].copy_(alph_star[:seqlen-l+1]  # seqlen-l+1 x bsz x K
-                                    ).sub_(bwd_maxlens[:seqlen-l+1].expand(seqlen-l+1, bsz, K)
-                                          ).add_(beta[l:]
-                                                ).add_(bwd_obs_logprobs[L-l, l-1:]
-                                                      ).sub_(ev.expand(seqlen-l+1, bsz, K))
-
-    # note that bwd_obs_logprobs[L-1] has single word stuff, but post [L-1] has L word stuff
-    return post
 
 
 # [p0    p1    p2    p3   p4
