@@ -4,7 +4,7 @@ Code for [Learning Neural Templates for Text Generation](https://arxiv.org/abs/1
 
 For questions/concerns/bugs please feel free to email swiseman[at]ttic.edu.
 
-N.B. This code was tested with python 2.7 and pytorch 0.3.1.
+**N.B.** This code was tested with python 2.7 and pytorch 0.3.1.
 
 ## Data and Data Preparation
 
@@ -46,7 +46,7 @@ python chsmm.py -data data/labewiki/ -emb_size 300 -hid_size 300 -layers 1 -K 45
 
 The above scripts will also attempt to save to a `models/` directory (which must be created first). Also see [chsmm.py](https://github.com/harvardnlp/neural-template-gen/blob/master/chsmm.py) for additional training and model options.
 
-N.B. training is somewhat sensitive to the random seed, and it may be necessary to try several seeds in order to get the best performance.
+**N.B.** training is somewhat sensitive to the random seed, and it may be necessary to try several seeds in order to get the best performance.
 
 
 ## Viterbi Segmentation/Template Extraction
@@ -92,6 +92,12 @@ The following command will generate on the E2E validation set using the autoregr
 python chsmm.py -data data/labee2e/ -emb_size 300 -hid_size 300 -layers 1 -dropout 0.3 -K 60 -L 4 -log_interval 100 -thresh 9 -lr 0.5 -sep_attn -unif_lenps -emb_drop -mlpinp -onmt_decay -one_rnn -max_pool -gen_from_fi data/labee2e/src_uniq_valid.txt -load models/e2e-60-1-far.pt -tagged_fi segs/seg-e2e-60-1-far.txt -beamsz 5 -ntemplates 100 -gen_wts '1,1' -cuda -min_gen_tokes 0 > gens/gen-e2e-60-1-far.txt
 ```
 
+The following command will generate on the WikiBio test using the autoregressive model:
+```
+python chsmm.py -data data/labewiki/ -emb_size 300 -hid_size 300 -layers 1 -K 45 -L 4 -log_interval 1000 -thresh 29 -emb_drop -bsz 5 -max_seqlen 55 -lr 0.5 -sep_attn -max_pool -unif_lenps -one_rnn -Kmul 3 -mlpinp -onmt_decay -cuda -gen_from_fi wikipedia-biography-dataset/test/test.box -load models/wb-45-3-war.pt -tagged_fi segs/seg-wb-300-45-3-war.txt -beamsz 5 -ntemplates 100 -gen_wts '1,1' -cuda -min_gen_tokes 20 > gens/gen-wb-45-3-war.txt
+```
+
 Generations from the other models can be obtained analogously, by substituting in the correct arguments for `-data` (path to data directory), `-gen_from_fi` (the source file from which to generate), `-load` (path to the saved model), and `-tagged_fi` (path to the MAP segmentations under the corresponding model). See [chsmm.py](https://github.com/harvardnlp/neural-template-gen/blob/master/chsmm.py) for additional generation options.
 
-N.B. The format of the generations is: `<generation>|||<segmentation>`, where `<segmentation>` provides the segmentation used in generating. As such, all the text beginning with '|||' should be stripped off before evaluating the generations.
+
+**N.B.** The format of the generations is: `<generation>|||<segmentation>`, where `<segmentation>` provides the segmentation used in generating. As such, all the text beginning with '|||' should be stripped off before evaluating the generations.
