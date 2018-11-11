@@ -72,8 +72,8 @@ def just_state2phrases(temps, temps2sents):
     return state2phrases
 
 
-def extract_from_tagged_data(datadir, bsz, tagged_fi, ntemplates):
-    corpus = labeled_data.SentenceCorpus(datadir, bsz, add_bos=False,
+def extract_from_tagged_data(datadir, bsz, thresh, tagged_fi, ntemplates):
+    corpus = labeled_data.SentenceCorpus(datadir, bsz, thresh=thresh, add_bos=False,
                                          add_eos=False, test=False)
     nskips = 0
     for i in xrange(len(corpus.train)):

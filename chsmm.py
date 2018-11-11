@@ -1250,8 +1250,8 @@ if __name__ == "__main__":
 
     def gen_from_src():
         from template_extraction import extract_from_tagged_data, align_cntr
-        top_temps, _, _ = extract_from_tagged_data(args.data, args.bsz, args.tagged_fi,
-                                                         args.ntemplates)
+        top_temps, _, _ = extract_from_tagged_data(args.data, args.bsz, args.thresh,
+                                                   args.tagged_fi, args.ntemplates)
 
         with open(args.gen_from_fi) as f:
             src_lines = f.readlines()
@@ -1303,8 +1303,8 @@ if __name__ == "__main__":
         net.eval()
         cop_counters = [Counter() for _ in xrange(net.K*net.Kmul)]
         net.ar = saved_args.ar_after_decay and not args.no_ar_for_vit
-        top_temps, _, _ = extract_from_tagged_data(args.data, args.bsz, args.tagged_fi,
-                                                   args.ntemplates)
+        top_temps, _, _ = extract_from_tagged_data(args.data, args.bsz, args.thresh,
+                                                   args.tagged_fi, args.ntemplates)
         top_temps = set(temp for temp in top_temps)
 
         with open(os.path.join(args.data, "train.txt")) as f:
