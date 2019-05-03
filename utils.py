@@ -241,3 +241,23 @@ def beam_search2(net, corpus, ss, start_inp, exh0, exc0, srcfieldenc,
     #if ss == 80:
     #    print "going with", best_hyp
     return best_hyp, best_wscore, best_lscore
+
+
+def calc_pur(counters):
+    purs, purs2 = [], []
+    for counter in counters:
+        if len(counter) > 0:
+            vals = counter.values()
+            if len(vals) > 0:
+                nonothers = [val for k, val in counter.items() if k != "other"]
+                oval = counter["other"] if "other" in counter else 0
+                if len(nonothers) > 0:
+                    total = float(sum(nonothers))
+                    maxval = max(nonothers)
+                    #if oval < total:
+                    if maxval > 0.5*(total+oval):
+                        purs.append(maxval/total)
+                        purs2.append(maxval/(total+oval))
+    purs, purs2 = torch.Tensor(purs), torch.Tensor(purs2)
+    print purs.mean(), purs.std()
+    print purs2.mean(), purs2.std()

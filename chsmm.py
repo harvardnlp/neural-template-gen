@@ -1363,12 +1363,17 @@ if __name__ == "__main__":
                         for wrd in tgttokes[start:end]:
                             if wrd in wrd2fields:
                                 cop_counters[labe].update(wrd2fields[wrd])
+                            else:
+                                cop_counters[labe]["other"] += 1
+
         return cop_counters
 
     if args.interactive:
         pass
     elif args.align:
+        from utils import calc_pur
         cop_counters = align_stuff()
+        calc_pur(cop_counters)
     elif args.label_train:
         net.eval()
         label_train()
