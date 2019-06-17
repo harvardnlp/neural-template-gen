@@ -254,8 +254,7 @@ def calc_pur(counters):
                 if len(nonothers) > 0:
                     total = float(sum(nonothers))
                     maxval = max(nonothers)
-                    #if oval < total:
-                    if maxval > 0.5*(total+oval):
+                    if oval < total:
                         purs.append(maxval/total)
                         purs2.append(maxval/(total+oval))
     purs, purs2 = torch.Tensor(purs), torch.Tensor(purs2)
