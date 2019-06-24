@@ -68,13 +68,13 @@ python chsmm.py -data data/labee2e/ -emb_size 300 -hid_size 300 -layers 1 -K 60 
 You can rerun the segmentation for the non-autoregressive WikiBio model as follows
 
 ```
-python chsmm.py -data data/labee2e/ -emb_size 300 -hid_size 300 -layers 1 -K 45 -L 4 -log_interval 200 -thresh 29 -emb_drop -bsz 16 -max_seqlen 55 -lr 0.5  -sep_attn -max_pool -unif_lenps -one_rnn -Kmul 3 -mlpinp -onmt_decay -cuda -load models/wb-45-3.pt -label_train | tee segs/seg-wb-300-45-3.txt
+python chsmm.py -data data/labewiki/ -emb_size 300 -hid_size 300 -layers 1 -K 45 -L 4 -log_interval 200 -thresh 29 -emb_drop -bsz 16 -max_seqlen 55 -lr 0.5  -sep_attn -max_pool -unif_lenps -one_rnn -Kmul 3 -mlpinp -onmt_decay -cuda -load models/wb-45-3.pt -label_train | tee segs/seg-wb-300-45-3.txt
 ```
 
 and for the autoregressive one as follows.
 
 ```
-python chsmm.py -data data/labee2e/ -emb_size 300 -hid_size 300 -layers 1 -K 45 -L 4 -log_interval 200 -thresh 29 -emb_drop -bsz 16 -max_seqlen 55 -lr 0.5  -sep_attn -max_pool -unif_lenps -one_rnn -Kmul 3 -mlpinp -onmt_decay -cuda -load models/wb-45-3-war.pt -label_train | tee segs/seg-wb-300-45-3-war.txt
+python chsmm.py -data data/labewiki/ -emb_size 300 -hid_size 300 -layers 1 -K 45 -L 4 -log_interval 200 -thresh 29 -emb_drop -bsz 16 -max_seqlen 55 -lr 0.5  -sep_attn -max_pool -unif_lenps -one_rnn -Kmul 3 -mlpinp -onmt_decay -cuda -load models/wb-45-3-war.pt -label_train | tee segs/seg-wb-300-45-3-war.txt
 ```
 
 The above scripts write the MAP segmentations (in text) to standard out. Above, they have been redirected to a `segs/` directory.
