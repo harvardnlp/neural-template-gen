@@ -3,10 +3,10 @@ import sys
 
 from utils import get_e2e_fields, e2e_key2idx
 
-e2e_train_src = "trainset-source.tok"
-e2e_train_tgt = "trainset-target.tok"
-e2e_val_src = "devset-source.tok"
-e2e_val_tgt = "devset-target.tok"
+e2e_train_src = "src_train.txt"
+e2e_train_tgt = "train_tgt_lines.txt" # gold generations corresponding to src_train.txt
+e2e_val_src = "src_valid.txt"
+e2e_val_tgt = "valid_tgt_lines.txt" # gold generations corresponding to src_valid.txt
 
 punctuation = set(['.', '!', ',', ';', ':', '?'])
 
