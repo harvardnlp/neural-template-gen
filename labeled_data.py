@@ -45,7 +45,7 @@ class SentenceCorpus(object):
                  test=False):
         self.dictionary = Dictionary()
         self.bsz = bsz
-        self.wiki = "wiki" in path
+        self.wiki = "wiki" in path or "wb" in path
 
         train_src = os.path.join(path, "src_train.txt")
 

@@ -1281,7 +1281,7 @@ if __name__ == "__main__":
 
                 for b in xrange(bsz):
                     src_line = src_lines[corpus.val_mb2linenos[i][b]]
-                    if "wiki" in args.data:
+                    if "wiki" in args.data or "wb" in args.data:
                         src_tbl = get_wikibio_poswrds(src_line.strip().split())
                     else:
                         src_tbl = get_e2e_poswrds(src_line.strip().split())
@@ -1289,7 +1289,7 @@ if __name__ == "__main__":
                     gen_from_srctbl(src_tbl, top_temps, coeffs, src_line=src_line)
         else:
             for ll, src_line in enumerate(src_lines):
-                if "wiki" in args.data:
+                if "wiki" in args.data or "wb" in args.data:
                     src_tbl = get_wikibio_poswrds(src_line.strip().split())
                 else:
                     src_tbl = get_e2e_poswrds(src_line.strip().split())
@@ -1352,7 +1352,7 @@ if __name__ == "__main__":
                 if tuple(labe for (start, end, labe) in seqs[bidx]) in top_temps:
                     lineno = corpus.train_mb2linenos[i][bidx]
                     tgttokes = tgtlines[lineno]
-                    if "wiki" in args.data:
+                    if "wiki" in args.data or "wb" in args.data:
                         src_tbl = get_wikibio_poswrds(srclines[lineno])
                     else:
                         src_tbl = get_e2e_poswrds(srclines[lineno]) # field, idx -> wrd
