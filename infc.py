@@ -4,7 +4,6 @@ all the inference stuff
 
 import math
 import torch
-from torch.autograd import Variable
 from utils import logsumexp0, logsumexp2
 
 
@@ -20,7 +19,7 @@ def recover_bps(delt, bps, bps_star):
     for b in xrange(bsz):
         seq = []
         _, last_lab = delt[seqlen][b].max(0)
-        last_lab = last_lab[0]
+        last_lab = last_lab.item()
         curr_idx = seqlen # 1-indexed
         while True:
             last_len = bps[curr_idx][b][last_lab]
@@ -140,7 +139,7 @@ def just_fwd(pi, trans_logprobs, bwd_obs_logprobs, constraints=None):
                       - bwd_maxlens[t-steps_back:t].expand(steps_back, bsz, K))
 
         if constraints is not None and constraints[t] is not None:
-            alph_terms = alph_terms + tmask #Variable(tmask)
+            alph_terms = alph_terms + tmask
 
         alph[t] = logsumexp0(alph_terms) # bsz x K
 
@@ -167,7 +166,7 @@ def just_bwd(trans_logprobs, fwd_obs_logprobs, len_logprobs, constraints=None):
     # we'll be 1-indexed for alphas and betas
     beta = [None]*(seqlen+1)
     beta_star = [None]*(seqlen+1)
-    beta[seqlen] = Variable(trans_logprobs.data.new(bsz, K).zero_())
+    beta[seqlen] = trans_logprobs.data.new(bsz, K).zero_()
     mask = trans_logprobs.data.new(L, bsz, K)
 
     for t in xrange(1, seqlen+1):
@@ -187,7 +186,7 @@ def just_bwd(trans_logprobs, fwd_obs_logprobs, len_logprobs, constraints=None):
                            + len_terms.unsqueeze(1).expand(steps_fwd, bsz, K))
 
         if constraints is not None and constraints[seqlen-t+1] is not None:
-            beta_star_terms = beta_star_terms + Variable(tmask)
+            beta_star_terms = beta_star_terms + tmask
 
         beta_star[seqlen-t] = logsumexp0(beta_star_terms)
         if seqlen-t > 0:
